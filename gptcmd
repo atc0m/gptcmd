@@ -1,0 +1,31 @@
+#!/bin/bash
+
+source environment.sh
+
+TEMPERATURE=0.5
+MAX_TOKENS=100
+TOP_P=1.0
+FREQUENCY_PENALTY=0.2
+PRESENCE_PENALTY=0.0
+STOP="<EOF>"
+
+TRAIN=$(cat "$HOME/mks/gpt-cmd/train.txt" | sed -z "s/\n/$STOP/g;s/$STOP$/\n/")
+QUESTION="$TRAIN$STOP\0Q:$*$STOP"
+
+BD=$(jq -n '{prompt: $prompt, temperature: $temp, max_tokens: $maxt, top_p: $topp, frequency_penalty: $freq, presence_penalty: $pres, stop: $stop}'\
+  --arg prompt "$QUESTION" \
+  --argjson temp $TEMPERATURE \
+  --argjson maxt $MAX_TOKENS \
+  --argjson topp $TOP_P \
+  --argjson freq $FREQUENCY_PENALTY \
+  --argjson pres $PRESENCE_PENALTY \
+  --arg stop "$STOP")
+
+RESP=$(curl -s https://api.openai.com/v1/engines/davinci/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $GPT_TOKEN" \
+  -d "$BD")
+
+TEXT=$(echo $RESP | jq -r .choices[0].text | grep -oP '(?<=A:).*' | tail -1)
+
+echo "$TEXT"
