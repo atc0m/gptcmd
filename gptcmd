@@ -1,12 +1,15 @@
 #!/bin/bash
 
 CONF="/etc/gptcmd/gptcmd.conf"
+DEFAULT_CONF="gptcmd.conf"
+
 CREDS_FILE="$HOME/.gptcmd/credentials"
 
 if [ -f "$CONF" ]; then
-  set -o allexport;
   source "$CONF";
-  set +o allexport;
+elif [ -f "$DEFAULT_CONF" ]; then
+  echo "$DEFAULT_CONF using default config"
+  source "$DEFAULT_CONF";
 else
   echo "$CONF not found";
   exit 1;
@@ -14,9 +17,7 @@ fi;
 
 if [ -z "$GPT_TOKEN" ]; then
   if [ -f "$CREDS_FILE" ]; then
-    set -o allexport;
     source "$CREDS_FILE";
-    set +o allexport;
   else
     echo "$CREDS_FILE not found";
     exit 1;
