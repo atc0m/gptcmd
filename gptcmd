@@ -1,13 +1,28 @@
 #!/bin/bash
 
-source environment.sh
+CONF="/etc/gptcmd/gptcmd.conf"
+DEFAULT_CONF="gptcmd.conf"
 
-TEMPERATURE=0.5
-MAX_TOKENS=100
-TOP_P=1.0
-FREQUENCY_PENALTY=0.2
-PRESENCE_PENALTY=0.0
-STOP="<EOF>"
+CREDS_FILE="$HOME/.gptcmd/credentials"
+
+if [ -f "$CONF" ]; then
+  source "$CONF";
+elif [ -f "$DEFAULT_CONF" ]; then
+  echo "$DEFAULT_CONF using default config"
+  source "$DEFAULT_CONF";
+else
+  echo "$CONF not found";
+  exit 1;
+fi;
+
+if [ -z "$GPT_TOKEN" ]; then
+  if [ -f "$CREDS_FILE" ]; then
+    source "$CREDS_FILE";
+  else
+    echo "$CREDS_FILE not found";
+    exit 1;
+  fi;
+fi;
 
 TRAIN=$(cat "$HOME/mks/gpt-cmd/train.txt" | sed -z "s/\n/$STOP/g;s/$STOP$/\n/")
 QUESTION="$TRAIN$STOP\0Q:$*$STOP"
@@ -21,7 +36,7 @@ BD=$(jq -n '{prompt: $prompt, temperature: $temp, max_tokens: $maxt, top_p: $top
   --argjson pres $PRESENCE_PENALTY \
   --arg stop "$STOP")
 
-RESP=$(curl -s https://api.openai.com/v1/engines/davinci/completions \
+RESP=$(curl -s "https://api.openai.com/v1/engines/$ENGINE/completions" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $GPT_TOKEN" \
   -d "$BD")
